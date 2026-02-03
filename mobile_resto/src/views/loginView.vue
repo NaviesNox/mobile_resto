@@ -15,6 +15,7 @@ export default {
         const form = new URLSearchParams();
         form.append("username", this.username);
         form.append("password", this.password);
+        
 
         const res = await api.post("/auth/login", form, {
           headers: {
@@ -22,11 +23,14 @@ export default {
           },
         });
 
-        localStorage.setItem("token", res.data.access_token);
-        this.$router.push("/home");
+        localStorage.setItem("access_token", res.data.access_token);
+
+       this.$router.push({ name: "home" });
+       
       } catch (err) {
         console.error(err);
         alert("Login gagal");
+
       }
     },
   },
@@ -58,12 +62,14 @@ export default {
           v-model="username"
           type="text"
           placeholder="Username"
+          autocomplete="username"
           class="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
         />
 
         <input
           v-model="password"
           type="password"
+          autocomplete="current-password"   
           placeholder="Password"
           class="w-full mb-6 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
         />

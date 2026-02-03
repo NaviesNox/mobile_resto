@@ -77,10 +77,11 @@ export default {
       currentTab: 'home'
     };
   },
-  mounted() {
-    if (!localStorage.getItem("token")) {
-      this.$router.push("/login");
-    }
+ mounted() {
+  if (!localStorage.getItem("access_token")) {
+    this.$router.push("/login");
   }
+}
+
 };
 </script>

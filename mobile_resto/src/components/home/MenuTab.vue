@@ -43,9 +43,9 @@
 
     <!-- MAIN CONTENT - Menu List -->
     <div class="flex-1">
-      <div class="flex justify-between items-center mb-4">
+      <div class="flex flex-col md:flex-row md:justify-between items-center mb-4">
         <h3 class="font-bold text-gray-700">Daftar Menu</h3>
-        <div class="flex gap-2">
+        <div class="flex gap-2 mt-3 md:mt-0 justify-center md:justify-end w-full md:w-auto">
           <button @click="refreshMenu" class="text-sm px-3 py-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition" :disabled="loadingMenu">
             <i class="fas fa-sync-alt" :class="loadingMenu ? 'animate-spin' : ''"></i> Refresh
           </button>
@@ -54,35 +54,13 @@
           </button>
         </div>
       </div>
-      <!-- Mobile category filter buttons -->
-      <div class="md:hidden mb-4">
+      <!-- Mobile category filter: dropdown for cleaner UI -->
+      <div class="md:hidden mb-4 w-full">
         <label class="block text-sm text-gray-600 mb-2">Kategori</label>
-        <div class="flex gap-2 overflow-x-auto pb-2">
-          <button 
-            @click="selectedKategori = 0"
-            :class="[
-              'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition',
-              selectedKategori === 0 
-                ? 'bg-red-500 text-white shadow-md shadow-red-200' 
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-            ]"
-          >
-            Semua
-          </button>
-          <button 
-            v-for="k in kategoriList"
-            :key="k.id"
-            @click="selectedKategori = k.id"
-            :class="[
-              'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition',
-              selectedKategori === k.id 
-                ? 'bg-red-500 text-white shadow-md shadow-red-200' 
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-            ]"
-          >
-            {{ k.nama_kategori }}
-          </button>
-        </div>
+        <select v-model.number="selectedKategori" class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white">
+          <option :value="0">Semua</option>
+          <option v-for="k in kategoriList" :key="k.id" :value="k.id">{{ k.nama_kategori }}</option>
+        </select>
       </div>
 
       <div v-if="errorMenu" class="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -114,18 +92,16 @@
         </div>
       </div>
 
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      <div v-for="menu in filteredMenuList" :key="menu.id" class="bg-white rounded-2xl border-2 border-gray-100 shadow-sm overflow-hidden group hover:shadow-lg transition">
-        
-        <!-- Image Container -->
-        <div class="w-full h-40 bg-gray-200 overflow-hidden relative group">
-          <img v-if="menu.foto" :src="menu.foto" :alt="menu.nama_menu" class="w-full h-full object-cover">
-          <div v-else class="w-full h-full flex items-center justify-center bg-gray-100">
-            <i class="fas fa-image text-3xl text-gray-300"></i>
-          </div>
+      <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div v-for="menu in filteredMenuList" :key="menu.id" class="bg-white rounded-2xl border-2 border-gray-100 shadow-sm overflow-hidden group hover:shadow-lg transition relative">
+        <!-- Simple header (no foto) -->
+        <div class="w-full h-20 flex items-center justify-center bg-gray-100">
+          <i class="fas fa-utensils text-3xl text-gray-400"></i>
+        </div>
 
-          <!-- Action Buttons - Hidden by default, shown on hover -->
-          <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <!-- Action Buttons - Hidden by default, shown on hover (overlay) -->
+        <div class="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <div class="pointer-events-auto flex gap-2">
             <button @click="openEditModal(menu)" class="w-10 h-10 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition flex items-center justify-center" title="Edit">
               <i class="fas fa-edit"></i>
             </button>
@@ -303,9 +279,6 @@ export default {
 
       // Mobile selected kategori (0 = semua)
       selectedKategori: 0,
-      
-      // Preview image
-      previewImage: null,
       
       // Delete target
       deleteTarget: null,
@@ -498,33 +471,8 @@ export default {
     },
 
     // ========== MENU METHODS ==========
-    handleImageUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    
 
-      // Validasi ukuran file (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        this.errorMenu = 'Ukuran file terlalu besar (max 5MB)';
-        return;
-      }
-
-      // Validasi tipe file
-      if (!file.type.startsWith('image/')) {
-        this.errorMenu = 'File harus berupa gambar';
-        return;
-      }
-
-      this.errorMenu = null;
-
-      // Convert to base64 dan simpan langsung ke formData
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64String = e.target.result;
-        this.previewImage = base64String;
-        this.formData.foto = base64String; // Simpan base64 di frontend
-      };
-      reader.readAsDataURL(file);
-    },
 
     // FETCH DATA
     async fetchMenuFromDatabase() {
@@ -579,7 +527,6 @@ export default {
         deskripsi: '',
         id_kategori_menu: 1
       };
-      this.previewImage = null;
       this.showModal = true;
     },
 
@@ -588,7 +535,6 @@ export default {
       this.formData = {
         ...menu
       };
-      this.previewImage = menu.foto || null;
       this.showModal = true;
     },
 
@@ -601,7 +547,6 @@ export default {
         deskripsi: '',
         id_kategori_menu: 1
       };
-      this.previewImage = null;
     },
 
     openDeleteModal(menu) {
@@ -626,14 +571,32 @@ export default {
       this.errorMenu = null;
 
       try {
-        // Kirim data sebagai JSON (foto sudah tidak ada di backend)
+        // Prepare payload matching API expectations:
+        // - nama_menu: string (required, unique)
+        // - harga: numeric
+        // - stok: integer
+        // - deskripsi: text (nullable)
+        // - kategori: integer (required, maps to id_kategori_menu in DB)
         const dataToSend = {
-          nama_menu: this.formData.nama_menu,
-          harga: this.formData.harga,
-          stok: this.formData.stok,
-          deskripsi: this.formData.deskripsi || '',
-          id_kategori_menu: this.formData.id_kategori_menu
+          nama_menu: String(this.formData.nama_menu).trim(),
+          harga: Number(this.formData.harga),
+          stok: parseInt(this.formData.stok, 10),
+          deskripsi: this.formData.deskripsi ? String(this.formData.deskripsi).trim() : null,
+          kategori: Number(this.formData.id_kategori_menu)
         };
+
+        // Basic client-side type validation
+        if (Number.isNaN(dataToSend.harga) || !Number.isFinite(dataToSend.harga)) {
+          this.errorMenu = 'Harga harus berupa angka yang valid.';
+          this.savingMenu = false;
+          return;
+        }
+        if (Number.isNaN(dataToSend.stok)) {
+          this.errorMenu = 'Stok harus berupa bilangan bulat.';
+          this.savingMenu = false;
+          return;
+        }
+        if (!Number.isInteger(dataToSend.stok)) dataToSend.stok = Math.round(dataToSend.stok);
 
         if (this.modalMode === 'create') {
           // CREATE
@@ -659,7 +622,29 @@ export default {
         }, 3000);
       } catch (error) {
         console.error('Error saving menu:', error);
-        this.errorMenu = error.response?.data?.detail || error.message;
+        // Prefer detailed validation messages from backend if available
+        if (error.response && error.response.data) {
+          const data = error.response.data;
+          // If backend returns an object of field errors, format them
+          if (typeof data === 'object') {
+            try {
+              const parts = [];
+              for (const key in data) {
+                const val = data[key];
+                if (Array.isArray(val)) parts.push(`${key}: ${val.join(', ')}`);
+                else if (typeof val === 'object') parts.push(`${key}: ${JSON.stringify(val)}`);
+                else parts.push(`${key}: ${val}`);
+              }
+              this.errorMenu = parts.join(' | ');
+            } catch (e) {
+              this.errorMenu = JSON.stringify(data);
+            }
+          } else {
+            this.errorMenu = String(data);
+          }
+        } else {
+          this.errorMenu = error.message;
+        }
       } finally {
         this.savingMenu = false;
       }

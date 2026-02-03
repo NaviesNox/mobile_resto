@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <div class="bg-gradient-to-r from-red-500 to-red-500 rounded-2xl p-6 text-white shadow-lg">
-      <h2 class="text-2xl font-bold mb-1">Halo, Kasir</h2>
+      <h2 class="text-2xl font-bold mb-1">Halo, {{ userName }}</h2>
       <p class="opacity-90 text-sm">Siap melayani pelanggan hari ini?</p>
     </div>
 
@@ -20,8 +20,30 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'HomeTab'
+<script setup>
+
+
+
+import { ref, onMounted, computed } from "vue";
+import api from "@/services/api";
+///declare home
+ 
+
+const profile = ref(null);
+
+const userName = computed(() => {
+  return profile.value?.name || profile.value?.username || "";
+});
+
+const fetchProfile = async () => {
+  try {
+    const res = await api.get("/users/profile/");
+    profile.value = res.data;
+  } catch (err) {
+    console.error(err);
+  }
 };
+
+onMounted(fetchProfile);
 </script>
+
