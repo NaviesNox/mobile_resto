@@ -34,7 +34,7 @@ export default {
   name: 'AkunTab',
   methods: {
     logout() {
-      localStorage.removeItem("token");
+      localStorage.removeItem("access_token");
       this.$router.push("/login");
     }
   }

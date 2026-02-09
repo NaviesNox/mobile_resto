@@ -69,7 +69,7 @@
         <div class="max-w-7xl mx-auto h-full">
             <HomeTab v-if="currentTab === 'home'" />
             <MejaTab v-if="currentTab === 'meja'" />
-            <Ordertab v-if="currentTab === 'order'" />
+            <OrderTab v-if="currentTab === 'order'" />
             <MenuTab v-if="currentTab === 'menu'" />
             <AkunTab v-if="currentTab === 'akun'" />
         </div>
@@ -85,6 +85,10 @@
         <button @click="currentTab = 'meja'" class="flex flex-col items-center justify-center w-16 h-full space-y-1 transition-all duration-200" :class="currentTab === 'meja' ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'">
           <i class="fas fa-chair text-xl mb-0.5" :class="currentTab === 'meja' ? 'transform scale-110' : ''"></i>
           <span class="text-[10px] font-medium">Meja</span>
+        </button>
+        <button @click="currentTab = 'order'" class="flex flex-col items-center justify-center w-16 h-full space-y-1 transition-all duration-200" :class="currentTab === 'order' ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'">
+          <i class="fas fa-clipboard-list text-xl mb-0.5" :class="currentTab === 'order' ? 'transform scale-110' : ''"></i>
+          <span class="text-[10px] font-medium">Order</span>
         </button>
 
         <div class="relative -top-6">
@@ -113,7 +117,7 @@ import HomeTab from '../components/home/HomeTab.vue';
 import MejaTab from '../components/home/MejaTab.vue';
 import MenuTab from '../components/home/MenuTab.vue';
 import AkunTab from '../components/home/AkunTab.vue';
-import Ordertab from '@/components/home/Ordertab.vue';
+import OrderTab from '../components/home/OrderTab.vue';
 
 
 export default {
@@ -122,7 +126,7 @@ export default {
     MejaTab,
     MenuTab,
     AkunTab,
-    Ordertab
+    OrderTab
   },
   data() {
     return {

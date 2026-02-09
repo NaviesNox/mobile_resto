@@ -17,6 +17,10 @@
             <option value="selesai">Selesai</option>
           </select>
 
+          <button @click="openCreateOrderModal" class="p-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition" title="Tambah Order Baru">
+            <i class="fas fa-plus mr-1"></i> <span class="hidden md:inline">Tambah Order</span>
+          </button>
+
           <button @click="fetchOrders" class="p-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition" title="Refresh Data">
             <i class="fas fa-sync-alt" :class="{'animate-spin': loading}"></i>
           </button>
@@ -223,6 +227,113 @@
       </div>
     </div>
 
+    <!-- Modal Create Order Baru -->
+    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+        
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+          <h2 class="text-xl font-bold text-gray-800">Tambah Order Baru</h2>
+          <button @click="closeCreateModal" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-1">
+          
+          <div v-if="createOrderError" class="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg mb-4">
+            <p class="text-sm">{{ createOrderError }}</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tipe Pesanan</label>
+              <select v-model="newOrderForm.tipe_pesanan" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                <option value="dine-in">Dine In</option>
+                <option value="take-away">Take Away</option>
+              </select>
+            </div>
+
+            <div v-if="newOrderForm.tipe_pesanan === 'dine-in'">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Meja</label>
+              <select v-model.number="newOrderForm.id_meja" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                <option :value="null">Pilih Meja</option>
+                <option v-for="meja in availableMeja" :key="meja.id" :value="meja.id">
+                  {{ meja.kode_meja }} - Kapasitas: {{ meja.kapasitas }} ({{ meja.status }})
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <div class="flex justify-between items-center mb-3">
+              <label class="block text-sm font-medium text-gray-700">Menu Pesanan</label>
+              <button @click="addOrderItem" class="text-sm px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+                <i class="fas fa-plus mr-1"></i> Tambah Menu
+              </button>
+            </div>
+
+            <div v-if="newOrderForm.detail_pesanan.length === 0" class="text-center py-8 text-gray-400">
+              <i class="fas fa-utensils text-4xl mb-2 block"></i>
+              <p>Belum ada menu ditambahkan</p>
+            </div>
+
+            <div v-else class="space-y-3">
+              <div v-for="(item, index) in newOrderForm.detail_pesanan" :key="index" class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                  <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Menu</label>
+                    <select v-model.number="item.id_menu" @change="updateOrderItemPrice(index)" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                      <option :value="null">Pilih Menu</option>
+                      <option v-for="menu in availableMenu" :key="menu.id" :value="menu.id" :disabled="menu.stok <= 0">
+                        {{ menu.nama_menu }} - {{ formatCurrency(menu.harga) }} {{ menu.stok <= 0 ? '(Stok Habis)' : '' }}
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Qty</label>
+                    <input v-model.number="item.qty" @input="updateOrderItemSubtotal(index)" type="number" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500">
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1">
+                      <label class="block text-xs font-medium text-gray-600 mb-1">Subtotal</label>
+                      <p class="text-sm font-bold text-gray-800">{{ formatCurrency(item.subtotal || 0) }}</p>
+                    </div>
+                    <button @click="removeOrderItem(index)" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Catatan (Optional)</label>
+            <textarea v-model="newOrderForm.catatan" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-500" placeholder="Catatan khusus untuk pesanan..."></textarea>
+          </div>
+
+          <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div class="flex justify-between items-center">
+              <span class="text-lg font-bold text-gray-700">Total Pesanan</span>
+              <span class="text-2xl font-bold text-green-600">{{ formatCurrency(calculateNewOrderTotal) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+          <button @click="closeCreateModal" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium transition">
+            Batal
+          </button>
+          <button @click="createOrder" :disabled="creatingOrder || newOrderForm.detail_pesanan.length === 0" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fas fa-spinner animate-spin" v-if="creatingOrder"></i>
+            <i class="fas fa-check mr-1" v-else></i>
+            {{ creatingOrder ? 'Menyimpan...' : 'Buat Pesanan' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -240,6 +351,19 @@ export default {
       // Modal control
       showModal: false,
       selectedOrder: null,
+
+      // Create Order Modal
+      showCreateModal: false,
+      creatingOrder: false,
+      createOrderError: null,
+      availableMenu: [],
+      availableMeja: [],
+      newOrderForm: {
+        tipe_pesanan: 'dine-in',
+        id_meja: null,
+        catatan: '',
+        detail_pesanan: []
+      }
     };
   },
   computed: {
@@ -248,6 +372,14 @@ export default {
         return this.orders;
       }
       return this.orders.filter(o => o.status === this.filterStatus);
+    },
+    calculateNewOrderTotal() {
+      if (!this.newOrderForm.detail_pesanan || this.newOrderForm.detail_pesanan.length === 0) {
+        return 0;
+      }
+      return this.newOrderForm.detail_pesanan.reduce((sum, item) => {
+        return sum + (item.subtotal || 0);
+      }, 0);
     }
   },
   methods: {
@@ -282,7 +414,9 @@ export default {
           }
         }
       } catch (error) {
-        alert("Gagal update status");
+        console.error('Error updating order status:', error);
+        this.errorMessage = error.response?.data?.detail || error.message || "Gagal update status";
+        alert(this.errorMessage);
       }
     },
 
@@ -348,6 +482,144 @@ export default {
     closeModal() {
       this.showModal = false;
       this.selectedOrder = null;
+    },
+
+    // --- CREATE ORDER METHODS ---
+    async openCreateOrderModal() {
+      this.showCreateModal = true;
+      this.createOrderError = null;
+      this.resetNewOrderForm();
+      
+      // Fetch menu dan meja saat modal dibuka
+      await Promise.all([
+        this.fetchAvailableMenu(),
+        this.fetchAvailableMeja()
+      ]);
+    },
+
+    closeCreateModal() {
+      this.showCreateModal = false;
+      this.createOrderError = null;
+      this.resetNewOrderForm();
+    },
+
+    resetNewOrderForm() {
+      this.newOrderForm = {
+        tipe_pesanan: 'dine-in',
+        id_meja: null,
+        catatan: '',
+        detail_pesanan: []
+      };
+    },
+
+    async fetchAvailableMenu() {
+      try {
+        const response = await api.get('/menus/');
+        this.availableMenu = Array.isArray(response.data) ? response.data : (response.data.results || response.data);
+      } catch (error) {
+        console.error('Error fetching menu:', error);
+        this.createOrderError = 'Gagal memuat daftar menu';
+      }
+    },
+
+    async fetchAvailableMeja() {
+      try {
+        const response = await api.get('/mejas/');
+        const mejaList = Array.isArray(response.data) ? response.data : (response.data.results || response.data);
+        // Filter hanya meja yang tersedia
+        this.availableMeja = mejaList.filter(meja => meja.status === 'tersedia' || meja.status === 'kosong');
+      } catch (error) {
+        console.error('Error fetching meja:', error);
+        this.createOrderError = 'Gagal memuat daftar meja';
+      }
+    },
+
+    addOrderItem() {
+      this.newOrderForm.detail_pesanan.push({
+        id_menu: null,
+        qty: 1,
+        harga_satuan: 0,
+        subtotal: 0
+      });
+    },
+
+    removeOrderItem(index) {
+      this.newOrderForm.detail_pesanan.splice(index, 1);
+    },
+
+    updateOrderItemPrice(index) {
+      const item = this.newOrderForm.detail_pesanan[index];
+      const menu = this.availableMenu.find(m => m.id === item.id_menu);
+      if (menu) {
+        item.harga_satuan = menu.harga;
+        item.subtotal = item.harga_satuan * (item.qty || 1);
+      } else {
+        item.harga_satuan = 0;
+        item.subtotal = 0;
+      }
+    },
+
+    updateOrderItemSubtotal(index) {
+      const item = this.newOrderForm.detail_pesanan[index];
+      if (item.harga_satuan && item.qty) {
+        item.subtotal = item.harga_satuan * item.qty;
+      } else {
+        item.subtotal = 0;
+      }
+    },
+
+    async createOrder() {
+      // Validasi
+      if (this.newOrderForm.tipe_pesanan === 'dine-in' && !this.newOrderForm.id_meja) {
+        this.createOrderError = 'Pilih meja untuk pesanan dine-in';
+        return;
+      }
+
+      if (this.newOrderForm.detail_pesanan.length === 0) {
+        this.createOrderError = 'Tambahkan minimal satu menu';
+        return;
+      }
+
+      // Validasi semua item harus punya menu dan qty
+      const invalidItems = this.newOrderForm.detail_pesanan.filter(item => !item.id_menu || !item.qty || item.qty <= 0);
+      if (invalidItems.length > 0) {
+        this.createOrderError = 'Pastikan semua menu sudah dipilih dan quantity valid';
+        return;
+      }
+
+      this.creatingOrder = true;
+      this.createOrderError = null;
+
+      try {
+        // Prepare payload sesuai struktur backend
+        const payload = {
+          tipe_pesanan: this.newOrderForm.tipe_pesanan,
+          id_meja: this.newOrderForm.tipe_pesanan === 'dine-in' ? this.newOrderForm.id_meja : null,
+          catatan: this.newOrderForm.catatan || null,
+          detail_pesanan: this.newOrderForm.detail_pesanan.map(item => ({
+            id_menu: item.id_menu,
+            qty: item.qty,
+            harga_satuan: item.harga_satuan,
+            subtotal: item.subtotal
+          }))
+        };
+
+        const response = await api.post('/pesanan', payload);
+        
+        // Refresh orders list
+        await this.fetchOrders();
+        
+        // Close modal
+        this.closeCreateModal();
+        
+        // Show success message
+        alert('Pesanan berhasil dibuat!');
+      } catch (error) {
+        console.error('Error creating order:', error);
+        this.createOrderError = error.response?.data?.detail || error.response?.data?.message || error.message || 'Gagal membuat pesanan';
+      } finally {
+        this.creatingOrder = false;
+      }
     }
   },
   mounted() {

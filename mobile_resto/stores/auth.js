@@ -5,12 +5,12 @@ import {
 import {
   defineStore
 } from 'pinia'
-import api from '../helpers/api.js'
+import api from '../src/services/api.js'
 
 export const useAuthStore = defineStore('auth', {
 
   state: () => ({
-    token: localStorage.getItem("token") || null,
+    token: localStorage.getItem("access_token") || null,
     profile: JSON.parse(localStorage.getItem("profile")) || null,
   }),
 
@@ -39,11 +39,11 @@ export const useAuthStore = defineStore('auth', {
         this.token = Fauth.data.access_token
 
         //set token di local storage
-        localStorage.setItem("token", Fauth.data.access_token)
+        localStorage.setItem("access_token", Fauth.data.access_token)
 
       } catch (error) {
         this.token = null
-        localStorage.removeItem("token")
+        localStorage.removeItem("access_token")
         alert("Username atau Password salah")
         console.error("Gagal Login", error);
       }
@@ -70,7 +70,7 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       this.token = null
       this.profile = null
-      localStorage.removeItem('token')
+      localStorage.removeItem('access_token')
       localStorage.removeItem('profile')
     }
 
