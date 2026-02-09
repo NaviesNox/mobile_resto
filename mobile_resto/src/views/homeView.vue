@@ -12,7 +12,7 @@
       <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         
         <button 
-          v-for="item in menuItems" 
+          v-for="item in visibleMenuItems" 
           :key="item.id"
           @click="currentTab = item.id"
           class="w-full flex items-center px-3 py-3 rounded-lg transition-all duration-200 group"
@@ -72,6 +72,7 @@
             <OrderTab v-if="currentTab === 'order'" />
             <MenuTab v-if="currentTab === 'menu'" />
             <AkunTab v-if="currentTab === 'akun'" />
+            <KaryawanTab v-if="currentTab === 'karyawan' && isAdmin" />
         </div>
       </main>
 
@@ -102,6 +103,16 @@
           <span class="text-[10px] font-medium">Menu</span>
         </button>
 
+        <button
+          v-if="isAdmin"
+          @click="currentTab = 'karyawan'"
+          class="flex flex-col items-center justify-center w-16 h-full space-y-1 transition-all duration-200"
+          :class="currentTab === 'karyawan' ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'"
+        >
+          <i class="fas fa-users-cog text-xl mb-0.5" :class="currentTab === 'karyawan' ? 'transform scale-110' : ''"></i>
+          <span class="text-[10px] font-medium">Karyawan</span>
+        </button>
+
         <button @click="currentTab = 'akun'" class="flex flex-col items-center justify-center w-16 h-full space-y-1 transition-all duration-200" :class="currentTab === 'akun' ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'">
           <i class="fas fa-user text-xl mb-0.5" :class="currentTab === 'akun' ? 'transform scale-110' : ''"></i>
           <span class="text-[10px] font-medium">Akun</span>
@@ -118,7 +129,8 @@ import MejaTab from '../components/home/MejaTab.vue';
 import MenuTab from '../components/home/MenuTab.vue';
 import AkunTab from '../components/home/AkunTab.vue';
 import OrderTab from '../components/home/OrderTab.vue';
-
+import KaryawanTab from '../components/home/KaryawanTab.vue';
+import api from '@/services/api';
 
 export default {
   components: {
@@ -126,11 +138,13 @@ export default {
     MejaTab,
     MenuTab,
     AkunTab,
-    OrderTab
+    OrderTab,
+    KaryawanTab
   },
   data() {
     return {
       currentTab: 'home',
+      profile: null,
       // Data untuk loop sidebar agar lebih rapi
       menuItems: [
         { id: 'home', label: 'Dashboard', icon: 'fas fa-home' },
@@ -138,6 +152,7 @@ export default {
         { id: 'menu', label: 'Daftar Menu', icon: 'fas fa-book-open' },
         { id: 'akun', label: 'Pengaturan Akun', icon: 'fas fa-user' },
         { id: 'order', label: 'Pesanan Masuk', icon: 'fas fa-clipboard-list' },
+        { id: 'karyawan', label: 'Karyawan & User', icon: 'fas fa-users-cog' }
       ]
     };
   },
@@ -149,16 +164,45 @@ export default {
         meja: 'Layout & Meja',
         menu: 'Katalog Menu',
         akun: 'Profil Pengguna',
-        order: 'Pesanan Masuk'
-
+        order: 'Pesanan Masuk',
+        karyawan: 'Kelola Karyawan & User'
       };
       return titles[this.currentTab] || this.currentTab;
+    },
+    isAdmin() {
+      if (!this.profile) return false;
+      const role = (this.profile.role || this.profile.role_name || '').toString().toLowerCase();
+      const isFlagAdmin = this.profile.is_admin || this.profile.is_staff || this.profile.is_superuser;
+      return isFlagAdmin || role === 'admin';
+    },
+    visibleMenuItems() {
+      // Sembunyikan menu karyawan jika bukan admin
+      return this.menuItems.filter(item => {
+        if (item.id === 'karyawan' && !this.isAdmin) return false;
+        return true;
+      });
+    }
+  },
+  methods: {
+    async fetchProfile() {
+      try {
+        const res = await api.get('/users/profile/');
+        this.profile = res.data;
+        // Jika bukan admin dan sedang di tab karyawan, kembalikan ke home
+        if (!this.isAdmin && this.currentTab === 'karyawan') {
+          this.currentTab = 'home';
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+      }
     }
   },
   mounted() {
     if (!localStorage.getItem("access_token")) {
       this.$router.push("/login");
+      return;
     }
+    this.fetchProfile();
   }
 };
 </script>
